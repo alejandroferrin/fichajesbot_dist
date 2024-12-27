@@ -1,0 +1,176 @@
+---
+- name: Clonar repo de GitHub y ejecutar script unificado
+  hosts: new  # Cambia esto por el nombre de tu host en el inventario
+  become: true  # Se necesitan permisos elevados para realizar ciertas operaciones
+  vars:
+    repo_url: "https://github.com/alejandroferrin/fichajesbot_dist.git"
+    repo_path: /fichajesbot
+    db_pass: pass #modificar
+    mysql_root_password: pass #modificar
+    telegram_bot_token: token #modificar
+    telegram_bot_name: bot #modificar
+    encryption_key: key== #modificar
+    admin_default_activation_code: 45 #modificar
+    admin_default_name: John Doe
+
+  tasks:
+    - name: Establecer la zona horaria a Europe/Madrid
+      ansible.builtin.timezone:
+        name: Europe/Madrid
+
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Verificar si el archivo de swap ya existe
+      stat:
+        path: /swapfile
+      register: swapfile_stat
+
+    - name: Crear archivo de swap
+      command: fallocate -l 1G /swapfile
+      args:
+        creates: /swapfile
+      when: not swapfile_stat.stat.exists
+
+    - name: Establecer permisos de archivo de swap
+      file:
+        path: /swapfile
+        state: touch
+        mode: '0600'
+      when: not swapfile_stat.stat.exists
+
+    - name: Verificar si se creó el archivo de swap
+      stat:
+        path: /swapfile
+      register: swapfile_status
+
+    - name: Configurar el archivo como swap
+      command: mkswap /swapfile
+      when: swapfile_status.stat.exists and not swapfile_stat.stat.exists
+
+    - name: Activar el archivo de swap
+      command: swapon /swapfile
+      when: swapfile_status.stat.exists and not swapfile_stat.stat.exists
+
+    - name: Persistir la configuración de swap (si no está ya presente)
+      lineinfile:
+        path: /etc/fstab
+        line: '/swapfile none swap sw 0 0'
+        state: present
+
+    - name: Configurar swappiness
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: 'vm.swappiness=60'
+        state: present
+        regexp: '^vm.swappiness='  # Elimina cualquier línea que comience con 'vm.swappiness='
+
+    - name: Aplicar cambios de sysctl
+      command: sysctl -p
+
+    - name: Install required system packages for docker
+      apt:
+        pkg:
+          - ca-certificates
+          - curl
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu jammy stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install docker-ce-cli
+      apt:
+        name: docker-ce-cli
+        state: latest
+        update_cache: false
+
+    - name: Install containerd.io
+      apt:
+        name: containerd.io
+        state: latest
+        update_cache: false
+
+    - name: Update apt and install docker-buildx-plugin
+      apt:
+        name: docker-buildx-plugin
+        state: latest
+        update_cache: false
+
+    - name: Install Docker-Compose-plugin
+      apt:
+        name: docker-compose-plugin
+        state: latest
+        update_cache: false
+
+    - name: Download docker-compose binary
+      get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system }}-{{ ansible_machine }}"
+        dest: /usr/local/bin/docker-compose
+        mode: 'a+x'
+
+    - name: Ensure docker-compose is executable
+      file:
+        path: /usr/local/bin/docker-compose
+        mode: 'a+x'
+
+    - name: Create Docker daemon.json
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "10m",
+              "max-file": "3"
+            }
+          }
+      notify:
+        - restart docker
+
+    - name: Ensure Docker is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Clonar el repositorio de GitHub
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_path }}"
+
+    - name: Hacer chmod +x al script unificado
+      command: "sudo chmod +x {{ repo_path }}/setup.sh"
+
+
+    - name: Ejecutar el script unificado
+      command: ./setup.sh "{{ db_pass }}" "{{ mysql_root_password }}" "{{ telegram_bot_token }}" "{{ telegram_bot_name }}" "{{ encryption_key }}" "{{ admin_default_activation_code }}" "{{ admin_default_name }}"
+      args:
+        chdir: "{{ repo_path }}"
+
+    - name: Start App
+      community.docker.docker_compose_v2:
+        project_src: "{{repo_path}}"
+        state: present
+
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted

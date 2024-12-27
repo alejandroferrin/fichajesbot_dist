@@ -1,0 +1,19 @@
+---
+- name: Actualizar paquetes en un servidor Ubuntu
+  hosts: all
+  become: yes
+  tasks:
+    - name: Actualizar la lista de paquetes
+      apt:
+        update_cache: yes
+
+    - name: Actualizar todos los paquetes instalados
+      apt:
+        upgrade: dist
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Limpiar paquetes innecesarios
+      apt:
+        autoremove: yes
+        purge: yes

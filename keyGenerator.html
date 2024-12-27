@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Claves AES</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        #output {
+            margin-top: 30px;
+            font-weight: bold;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generador de Claves AES</h1>
+    <button onclick="generateKey()">Generar Clave</button>
+    <div id="output"></div>
+
+    <script>
+        function generateKey() {
+            const keySize = 16; // 128 bits = 16 bytes
+            const key = new Uint8Array(keySize);
+            window.crypto.getRandomValues(key); // Genera un array de valores aleatorios seguros
+            
+            // Convierte el array a base64
+            const keyBase64 = btoa(String.fromCharCode.apply(null, key));
+
+            document.getElementById('output').textContent = `Clave generada: ${keyBase64}`;
+        }
+    </script>
+</body>
+</html>

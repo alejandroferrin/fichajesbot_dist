@@ -1,0 +1,37 @@
+services:
+  db:
+    container_name: fichajesbotdb
+    image: 'linuxserver/mariadb:10.11.10'
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=fichajesbotrootpass #Cambiar password si se desea
+      - MYSQL_DATABASE=db_fichajesbot
+      - MYSQL_USER=fichajes #Cambiar usuario si se desea
+      - MYSQL_PASSWORD=fichajespass #Cambiar password si se desea
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+
+  app:
+    container_name: fichajesbotapp
+    image: 'alexfer/fichajesbot:0.1.0'
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://db:3306/db_fichajesbot
+      - SPRING_DATASOURCE_USERNAME=fichajes #Usar mismo usuario que la base de datos
+      - SPRING_DATASOURCE_PASSWORD=fichajespass #Usar misma contraseña que la base de datos
+      - TELEGRAM_BOT_TOKEN=bot_token
+      - TELEGRAM_BOT_NAME=test_fichajes_bot
+      - ENCRYPTION_KEY=B4KKHg+zjUMyfRbfOEiIiQ==
+      - ADMIN_DEFAULT_ACTIVATION_CODE=45
+      - ADMIN_DEFAULT_NAME=John Doe
+    ports:
+      - "8080:8080"
+    links:
+      - "db"
+    depends_on:
+      - "db"
+    restart: always
+volumes:
+  db_data:

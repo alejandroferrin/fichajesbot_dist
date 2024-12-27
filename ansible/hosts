@@ -1,0 +1,6 @@
+[all]
+1.1.1.1 ansible_user=ubuntu ansible_ssh_private_key_file=/home/user/fichajesbot/fichajesbot.pem
+
+[new]
+1.1.1.1 ansible_user=ubuntu ansible_ssh_private_key_file=/home/user/fichajesbot/fichajesbot.pem
+

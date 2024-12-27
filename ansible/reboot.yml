@@ -1,0 +1,23 @@
+---
+- name: Reiniciar servidores
+  hosts: all
+  become: true  # Para ejecutar tareas como superusuario
+  tasks:
+    - name: Reiniciar el servidor
+      reboot:
+        reboot_timeout: 600  # Tiempo máximo para esperar el reinicio en segundos
+        msg: "Reiniciando el servidor para mantenimiento"
+      register: reboot_result
+
+    - name: Esperar a que el servidor esté de vuelta
+      wait_for:
+        timeout: 600  # Esperar hasta que el servidor se vuelva a conectar
+        state: started
+        port: 22
+        delay: 10  # Esperar 10 segundos antes de intentar reconectar
+      when: reboot_result.changed
+
+    - name: Comprobar estado después del reinicio
+      shell: |
+        echo "El servidor {{ inventory_hostname }} se ha reiniciado correctamente."
+      when: reboot_result.changed
