@@ -4,6 +4,8 @@
 
 **Fichajesbot** es una aplicación diseñada para almacenar el registro de entradas y salidas de los empleados en pequeñas empresas a través de un bot en Telegram. Con Fichajesbot, los empleados pueden fichar fácilmente sus jornadas laborales, lo que permite un seguimiento del tiempo trabajado.
 
+Tutorial instalación y funcionamiento: https://youtu.be/A3A_IrTqxSw?si=uRwiXUlOnpxjY9yi
+
 ## Características
 
 - **Registro Sencillo**: Los empleados pueden registrar su entrada y salida directamente desde Telegram, haciendo que el proceso sea rápido y accesible.
